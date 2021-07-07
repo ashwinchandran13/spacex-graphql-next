@@ -1,8 +1,14 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
+import {
+  ApolloClient,
+  InMemoryCache,
+  gql
+} from "@apollo/client";
 
-export default function Home() {
+export default function Home({ launches }) {
+  console.log('launches', launches);
   return (
     <div className={styles.container}>
       <Head>
@@ -13,42 +19,26 @@ export default function Home() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+          SpaceX Launches
         </h1>
 
         <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
+          Latest launches from SpaceX
         </p>
 
         <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
+        {launches.map((launch) => (
+            <a key={launch.id}
+            href={launch.links.video_link}
             className={styles.card}
           >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
+            <h3>{ launch.mission_name}</h3>
+            <span className={styles.logo}>
+          </span>
+            <p><strong>Launch Time: </strong>{ new Date(launch.launch_date_local).toLocaleDateString("en-Us") }</p>
           </a>
+          ))}
 
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
         </div>
       </main>
 
@@ -60,10 +50,50 @@ export default function Home() {
         >
           Powered by{' '}
           <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
+            {/* <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} /> */}
+            Ashwin Chandran🇮🇳
           </span>
         </a>
       </footer>
     </div>
   )
+}
+
+export async function getStaticProps() {
+  const client = new ApolloClient({
+    uri: 'https://api.spacex.land/graphql/',
+    cache: new InMemoryCache()
+  })
+
+  const { data } = await client.query({
+    query: gql`
+    query GetLaunches {
+      launchesPast(limit: 10) {
+        launch_date_local
+        launch_site {
+          site_name_long
+        }
+        links {
+          article_link
+          video_link
+          mission_patch
+        }
+        rocket {
+          rocket_name
+        }
+        id
+        mission_name
+      }
+    }
+    
+    `
+  })
+
+  console.log('data', data);
+
+  return {
+    props: {
+      launches: data.launchesPast
+    }
+  }
 }
